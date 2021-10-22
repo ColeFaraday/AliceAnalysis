@@ -5,7 +5,6 @@ import argparse
 
 def main():
     # Add arguments
-    print('sldkjfslkfjs')
     parser = argparse.ArgumentParser(description='pre-process data to mask certain sections etc.')
     parser.add_argument('filename', help='the numpy (.npy) file to import')
     parser.add_argument('new_filename', help='the numpy (.npy) file to export')
