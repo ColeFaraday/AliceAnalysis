@@ -11,7 +11,7 @@ Repository for the analysis code for the ALICE practical 2021 at UCT.
 4. The `pre_process.py` script takes in the input filename (of the raw data
    numpy file) and the output filename (to write to) and goes through some basic
    pre processing
-5. The data in the output file cam then be used for further analysis and is a 
+5. The data in the output file can then be used for further analysis and is a 
    four dimensional numpy array with columns of "Event number", "Pad Row", "Pad
    Column", "Time Bin". The value of each element in the array represents an ADC
    count which relates to whether a particle was detected there.
