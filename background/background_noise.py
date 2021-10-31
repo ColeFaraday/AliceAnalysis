@@ -19,6 +19,7 @@ def main():
 
     # Load file specified as argument
     arr = np.load(args.data)
+    print(np.shape(arr))
     NUM_EVENTS, NUM_ROWS, NUM_COLUMNS, NUM_TIME_BINS = np.shape(arr)
 
     # Average along time and event dimensions
