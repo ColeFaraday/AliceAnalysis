@@ -7,11 +7,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import itertools
 import argparse
+from matplotlib import colors
 
 # CONSTANTS
 BACKGROUND = 9.6 # TODO: fill in the real value
 
 finalROIArr = None
+finalRegionsArr = None
 
 class regions_of_interest:
 
@@ -66,6 +68,7 @@ class regions_of_interest:
 
 def main():
     global finalROIArr
+    global finalRegionsArr
 
     # generate a parser for the command line arguments
     parser = argparse.ArgumentParser(description='Generate a .npy file of the continuous regions of interest which could correspond to tracklets')
@@ -79,7 +82,7 @@ def main():
     args = parser.parse_args()
 
 
-    data = np.load(args.filename)
+    data = np.load(args.filename, allow_pickle=True)
     print(np.shape(data))
     data = data[1:,:,:,:] # remove first event which is just zeros
 
@@ -89,17 +92,25 @@ def main():
     # ------------------------------------------------------------------------
     # event loop
     for evno, d in enumerate(data):
+        tempROIArr = None
+        tempRegions = None
             
         # Loop through regions of interest 
         for roi in regions_of_interest(d):
 
             tracklet = d[roi[0], roi[1]:roi[2], :]-BACKGROUND
+            print("LITTLE", tracklet)
+            print("ROI", roi)
+            print(np.shape(roi))
 
              # add tracklet to ROI arr
             if type(finalROIArr) == type(None):
-                finalROIArr = tracklet
+                tempROIArr = tracklet
+                tempRegions = roi
             else:
-                finalROIArr = np.vstack([finalROIArr,tracklet])
+                tempROIArr = np.vstack([tempROIArr,tracklet])
+                tempRegions = np.vstack([tempRegions, roi])
+            print(evno, tempROIArr)
  
             # skip roi if data in first bins, (TODO: why?)
             # if ( np.sum(tracklet[:,0:6]) > 50 ): continue
@@ -107,12 +118,35 @@ def main():
             # fill pulseheight sum and plot tracklets
             sumtracklet += np.sum(tracklet, 0)
             ntracklet += 1
-            # plt.plot(np.sum(tracklet,0))
+
+        if type(finalROIArr) == type(None):
+            print(tempROIArr, "HEYO")
+            finalROIArr = tempROIArr
+        else:
+            finalROIArr = np.vstack([finalROIArr, tempROIArr])
+
+
+    print(finalROIArr)
         
+    # create discrete colormap
+    cmap = colors.ListedColormap(['red', 'blue'])
+    # bounds = [0,10,20]
+    # norm = colors.BoundaryNorm(bounds, cmap.N)
+
+    print(specificRegion)
+
+    fig, ax = plt.subplots()
+    ax.imshow(regionsInDataArr, cmap=cmap)
+
+    # draw gridlines
+    ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
+    ax.set_xticks(np.arange(-.5, 10, 1));
+    ax.set_yticks(np.arange(-.5, 10, 1));
+
     plt.show()
+
     finalROIArr = np.array(finalROIArr)
     np.save(args.out_file, finalROIArr)
 
 if __name__ == "__main__":
     main()
-
