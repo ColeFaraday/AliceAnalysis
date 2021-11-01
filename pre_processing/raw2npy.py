@@ -72,7 +72,6 @@ if __name__ == "__main__":
         else:
             alldata = np.concatenate( (alldata,np.expand_dims(data, axis=0)), axis=0 )
 
-
     # Zero supression of the broken region of the detector. Note that this region may change and should be worked out using background.py
     if args.supress==True:
         DATA_EXCLUDE_MASK = np.zeros((args.nevents-1, 12, 144, 30), dtype=bool)
