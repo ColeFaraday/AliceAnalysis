@@ -20,25 +20,20 @@ def readInFile(filename, suppress, nevents, progress):
     sumtrkl = np.zeros(30)
     ntrkl = 0
 
-
-    # ------------------------------------------------------------------------
-    # create the histogram
-
-    #hist, bins = np.histogram((), np.linspace(0, 20, 2000))
-
     alldata = None
 
     # ------------------------------------------------------------------------
     # event loop
     for evno, raw_data in enumerate(reader):
 
+        print(evno, raw_data)
+        break;
         # limit number of events to be processed
         if evno >= nevents: 
-            print('test')
             break
 
         # skip the first event, which is usually a config event
-        if evno == 0: continue
+        # if evno == 0: continue
 
         if progress > 0 and evno%progress==0:
             print ("###  EVENT %d" % evno )
@@ -51,8 +46,8 @@ def readInFile(filename, suppress, nevents, progress):
             continue
 
         print(analyser.data)
+        print(type(analyser.data))
         data = analyser.data[:12]  # The last four rows are zeros.
-        print(data)
 
         if alldata is None:
             alldata = np.expand_dims(data, axis=0)
