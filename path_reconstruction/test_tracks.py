@@ -26,8 +26,14 @@ def main():
     arrNoBackground = arr - 9.6
     arrNoBackground[arrNoBackground<=0] = 0
 
+    DATA_EXCLUDE_MASK = np.zeros((4, 12, 144, 30), dtype=bool)
+    DATA_EXCLUDE_MASK [:,4:8, 72:,:] = True
+    arrNoBackground[DATA_EXCLUDE_MASK] = 0
+
+    
+
     #contour plot of means of ADC values of TRD - finding baseline of TRD
-    print(np.shape(arrNoBackground[0,6,:,:]))
+    print(np.shape(arrNoBackground[4,1,:,:]))
     plt.pcolor(bins,columns,arrNoBackground[0,6,:,:])
     plt.colorbar(label="$\mu$")
     plt.xlabel('Time bins')

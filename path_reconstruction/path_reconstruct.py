@@ -5,8 +5,6 @@ import argparse
 
 PAD_WIDTH= 6 # 6 mm pad width, fill in correct value
 
-def calc_position(adcData, padWidth, )
-
 def main():
 
     # generate a parser for the command line arguments
@@ -21,7 +19,12 @@ def main():
         exit(0)
 
     # Load file specified as argument
-    arr = np.load(args.data)
+    roiArr = np.genfromtxt(args.data, float, "#", " ", skip_header=1)
+    show_test_event(roiArr, 0)
+
+def show_test_event(roiArr, evNum):
+    print(roiArr[evNum])
+
 
 if __name__ == "__main__":
     main()

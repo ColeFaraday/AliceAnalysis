@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+# Modifed version of https://github.com/CalleyRamcharan/ALICE2020Public/blob/main/roi.py
 
-#import defaults
+# Finds the regions of interest (i.e. where we expect to see tracklets) and saves them as a csv file
+
 import o32reader as rdr
 import adcarray as adc
 import numpy as np
@@ -8,24 +10,29 @@ import matplotlib.pyplot as plt
 import itertools
 import argparse
 
+# CONSTANTS
+BACKGROUND = 9.6 # TODO: fill in the real value
+
+finalROIArr = None
 
 class regions_of_interest:
 
     def __init__ ( self, adcdata ):
 
         self.data = adcdata
-        self.tbsum = np.sum(self.data, 2)
+        self.tbsum = np.sum(self.data, 2) # sum over time dimension (total number of hits per pad)
 
         # find points of interest - 2D array of hits = fired pads
-        self.poi = np.argwhere(self.tbsum > 350)
+        self.poi = np.argwhere(self.tbsum > 350) # TODO: This value seems arbitrary?
+        print(self.poi)
 
         # create list for regions of interest
         self.roi = []
 
         # find continuous regions of interest
-        for r in sorted(set(self.poi[:,0])):
+        for r in sorted(set(self.poi[:,0])): # loop through the rows containing points of interest
 
-            # pads with hits
+            # pad columns with hits
             pads = [x[1] for x in self.poi if x[0]==r]
 
             start = False
@@ -39,9 +46,6 @@ class regions_of_interest:
                     current = p
                 else:
                     npad = current-start+1
-                    #trkl = data[r, start:current+1, :]-9.5
-                    
-                    #print ("    Tracklet: ", start, current, np.sum(trkl))
                     self.roi.append( {
                         'row': r,
                         'start': start,
@@ -65,13 +69,13 @@ class regions_of_interest:
 
 
 
-        
-if __name__ == "__main__":
+def main():
+    global finalROIArr
 
-    # ------------------------------------------------------------------------
     # generate a parser for the command line arguments
     parser = argparse.ArgumentParser(description='Generate a pulse-height plot.')
     parser.add_argument('filename', help='the TRD raw data file to process')
+    parser.add_argument('out_file', help='the output data file for ROI')
     parser.add_argument('--nevents', '-n' , default=1000, type=int,
                         help='number of events to analyse')
     parser.add_argument('--allplots', action='store_true',
@@ -95,8 +99,8 @@ if __name__ == "__main__":
     DATA_EXCLUDE_MASK = np.zeros((12, 144, 30), dtype=bool)
     DATA_EXCLUDE_MASK[4:8,0:72,:] = True
 
-    sumtrkl = np.zeros(30)
-    ntrkl = 0
+    sumtracklet = np.zeros(30)
+    ntracklet = 0
 
 
     # ------------------------------------------------------------------------
@@ -122,20 +126,28 @@ if __name__ == "__main__":
         for roi in regions_of_interest(data):
 
             roi['event'] = evno
-            print (roi)
         
-            trkl = data[roi['row'], roi['start']:roi['end'], :]-9.5
+            tracklet = data[roi['row'], roi['start']:roi['end'], :]-BACKGROUND
+            print(roi['start'])
 
+             # add tracklet to ROI arr
+            if type(finalROIArr) == type(None):
+                finalROIArr = tracklet
+            else:
+                finalROIArr = np.vstack([finalROIArr,tracklet])
+ 
             # skip roi if data in first bins
-            if ( np.sum(trkl[:,0:6]) > 50 ): continue
+            if ( np.sum(tracklet[:,0:6]) > 50 ): continue
 
             # fill pulseheight sum and plot tracklets
-            sumtrkl += np.sum(trkl, 0)
-            ntrkl += 1
-            plt.plot(np.sum(trkl,0))
+            sumtracklet += np.sum(tracklet, 0)
+            ntracklet += 1
+            plt.plot(np.sum(tracklet,0))
+        
+    finalROIArr = np.array(finalROIArr)
+    print(finalROIArr)
+    np.save(args.out_file, finalROIArr)
 
-            
-    plt.figure()
-    plt.plot(sumtrkl/ntrkl)
-    plt.show()                    
+if __name__ == "__main__":
+    main()
 
