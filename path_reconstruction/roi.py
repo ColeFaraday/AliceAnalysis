@@ -3,28 +3,28 @@
 
 # Finds the regions of interest (i.e. where we expect to see tracklets) and saves them as a csv file
 
-import o32reader as rdr
-import adcarray as adc
 import numpy as np
 import matplotlib.pyplot as plt
 import itertools
 import argparse
+from matplotlib import colors
 
 # CONSTANTS
 BACKGROUND = 9.6 # TODO: fill in the real value
 
 finalROIArr = None
+finalRegionsArr = None
 
 class regions_of_interest:
 
     def __init__ ( self, adcdata ):
+        ''' Takes in adcdata array which is a three dimensional array of the adcdata for a specific event'''
 
         self.data = adcdata
-        self.tbsum = np.sum(self.data, 2) # sum over time dimension (total number of hits per pad)
+        self.tbsum = np.sum(self.data, 2) # sum over time dimension (total number of hits per pad)k
 
         # find points of interest - 2D array of hits = fired pads
         self.poi = np.argwhere(self.tbsum > 350) # TODO: This value seems arbitrary?
-        print(self.poi)
 
         # create list for regions of interest
         self.roi = []
@@ -37,23 +37,20 @@ class regions_of_interest:
 
             start = False
             current = False
-            for p in pads+[999]:
+            for p in pads+[999]: #unsure why there is a +[999] here (legacy)
                 if not start:
                     start=p
                     current=p-1
 
+                # If the next pad is the one after the current pad, continue creating the region, otherwise the region is complete.
                 if p==(current+1):
                     current = p
                 else:
                     npad = current-start+1
-                    self.roi.append( {
-                        'row': r,
-                        'start': start,
-                        'end': start+npad-1,
-                        'npad': npad
-                    } )
+                    self.roi.append([r, start, current, npad]) # row, start, end, number of pads
+                    # start=False # new code, unsure how it worked without this
 
-        #print (self.roi)
+        self.roi = np.array(self.roi)
 
     def __iter__(self):
         self.i = 0
@@ -71,83 +68,85 @@ class regions_of_interest:
 
 def main():
     global finalROIArr
+    global finalRegionsArr
 
     # generate a parser for the command line arguments
-    parser = argparse.ArgumentParser(description='Generate a pulse-height plot.')
-    parser.add_argument('filename', help='the TRD raw data file to process')
-    parser.add_argument('out_file', help='the output data file for ROI')
+    parser = argparse.ArgumentParser(description='Generate a .npy file of the continuous regions of interest which could correspond to tracklets')
+    parser.add_argument('filename', help='The processed, zero-supressed .npy file (output from raw2npy.py)')
+    parser.add_argument('out_file', help='The output .npy file to save the regions to')
     parser.add_argument('--nevents', '-n' , default=1000, type=int,
                         help='number of events to analyse')
-    parser.add_argument('--allplots', action='store_true',
-                        help='draw a crowded plot with all tracklets')
     parser.add_argument('--printargs', action='store_true',
                         help='print arguments and exit')
     
     args = parser.parse_args()
 
-    if args.printargs:
-        print (args)
-        exit(0)
-    
-    # ------------------------------------------------------------------------
-    # setup the reader
-    reader = rdr.o32reader(args.filename)
-    analyser = adc.adcarray()
 
-    # ------------------------------------------------------------------------
-    # some default settings
-    DATA_EXCLUDE_MASK = np.zeros((12, 144, 30), dtype=bool)
-    DATA_EXCLUDE_MASK[4:8,0:72,:] = True
+    data = np.load(args.filename, allow_pickle=True)
+    print(np.shape(data))
+    data = data[1:,:,:,:] # remove first event which is just zeros
 
     sumtracklet = np.zeros(30)
     ntracklet = 0
 
-
     # ------------------------------------------------------------------------
     # event loop
-    for evno, raw_data in enumerate(reader):
+    for evno, d in enumerate(data):
+        tempROIArr = None
+        tempRegions = None
+            
+        # Loop through regions of interest 
+        for roi in regions_of_interest(d):
 
-        # limit number of events to be processed
-        if evno >= args.nevents: break
-
-        # skip the first event, which is usually a config event
-        if evno == 0: continue
-        
-        # read the data
-        try:
-            analyser.analyse_event(raw_data)
-        except adc.datafmt_error as e:
-            continue
-
-        data = analyser.data[:12]  # The last four rows are zeros.
-        data[DATA_EXCLUDE_MASK] = 0
-
-
-        for roi in regions_of_interest(data):
-
-            roi['event'] = evno
-        
-            tracklet = data[roi['row'], roi['start']:roi['end'], :]-BACKGROUND
-            print(roi['start'])
+            tracklet = d[roi[0], roi[1]:roi[2], :]-BACKGROUND
+            print("LITTLE", tracklet)
+            print("ROI", roi)
+            print(np.shape(roi))
 
              # add tracklet to ROI arr
             if type(finalROIArr) == type(None):
-                finalROIArr = tracklet
+                tempROIArr = tracklet
+                tempRegions = roi
             else:
-                finalROIArr = np.vstack([finalROIArr,tracklet])
+                tempROIArr = np.vstack([tempROIArr,tracklet])
+                tempRegions = np.vstack([tempRegions, roi])
+            print(evno, tempROIArr)
  
-            # skip roi if data in first bins
-            if ( np.sum(tracklet[:,0:6]) > 50 ): continue
+            # skip roi if data in first bins, (TODO: why?)
+            # if ( np.sum(tracklet[:,0:6]) > 50 ): continue
 
             # fill pulseheight sum and plot tracklets
             sumtracklet += np.sum(tracklet, 0)
             ntracklet += 1
-            plt.plot(np.sum(tracklet,0))
-        
-    finalROIArr = np.array(finalROIArr)
+
+        if type(finalROIArr) == type(None):
+            print(tempROIArr, "HEYO")
+            finalROIArr = tempROIArr
+        else:
+            finalROIArr = np.vstack([finalROIArr, tempROIArr])
+
+
     print(finalROIArr)
+        
+    # create discrete colormap
+    cmap = colors.ListedColormap(['red', 'blue'])
+    # bounds = [0,10,20]
+    # norm = colors.BoundaryNorm(bounds, cmap.N)
+
+    print(specificRegion)
+
+    fig, ax = plt.subplots()
+    ax.imshow(regionsInDataArr, cmap=cmap)
+
+    # draw gridlines
+    ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
+    ax.set_xticks(np.arange(-.5, 10, 1));
+    ax.set_yticks(np.arange(-.5, 10, 1));
+
+    plt.show()
+
+    finalROIArr = np.array(finalROIArr)
     np.save(args.out_file, finalROIArr)
 
 if __name__ == "__main__":
     main()
-
