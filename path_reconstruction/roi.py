@@ -6,14 +6,14 @@
 import itertools
 import argparse
 import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.pyplot as plt
 from matplotlib import colors
 from matplotlib.ticker import MultipleLocator
 
 # CONSTANTS
 BACKGROUND = 9.6 # TODO: fill in the real value
-THRESHOLD = 200
+THRESHOLD = 350
 
 finalROIArr = []
 
@@ -84,8 +84,7 @@ def main():
     parser = argparse.ArgumentParser(description='Generate a .npy file of the continuous regions of interest which could correspond to tracklets')
     parser.add_argument('filename', help='The processed, zero-supressed .npy file (output from raw2npy.py)')
     parser.add_argument('out_file', help='The output .npy file to save the regions to')
-    parser.add_argument('--nevents', '-n' , default=1000, type=int,
-                        help='number of events to analyse')
+    parser.add_argument('--nevents', '-n' , default=1000, type=int, help='number of events to analyse')
     parser.add_argument('--printargs', action='store_true',
                         help='print arguments and exit')
     
@@ -144,28 +143,28 @@ def main():
 
     print("regions", regions2D)
 
-    fig, ax = plt.subplots(figsize=(8,3))
-    ax.imshow(regionsInData, cmap=cmap)
-    plt.xlim([0, 49])
-    plt.ylim([0, 11])
+    # fig, ax = plt.subplots(figsize=(8,3))
+    # ax.imshow(regionsInData, cmap=cmap)
+    # plt.xlim([0, 49])
+    # plt.ylim([0, 11])
 
 
-    # draw gridlines
-    # ax.grid(which='both', axis='both', linestyle='-', color='k', linewidth=1)
-    # ax.minorticks_on()
-    # ax.xaxis.set_minor_locator(MultipleLocator(1))
-    # ax.yaxis.set_minor_locator(MultipleLocator(1))
-    # ax.set_xticks(np.arange(0, 144, 1));
-    # ax.set_yticks(np.arange(0, 12, 1));
-    ax.set_xlabel("Pad columns")
-    ax.set_ylabel("Pad rows")
+    # # draw gridlines
+    # # ax.grid(which='both', axis='both', linestyle='-', color='k', linewidth=1)
+    # # ax.minorticks_on()
+    # # ax.xaxis.set_minor_locator(MultipleLocator(1))
+    # # ax.yaxis.set_minor_locator(MultipleLocator(1))
+    # # ax.set_xticks(np.arange(0, 144, 1));
+    # # ax.set_yticks(np.arange(0, 12, 1));
+    # ax.set_xlabel("Pad columns")
+    # ax.set_ylabel("Pad rows")
 
-    # plt.show()
+    # # plt.show()
 
-    finalROIArr = np.array(finalROIArr)
+    # finalROIArr = np.array(finalROIArr)
     np.save(args.out_file, finalROIArr)
 
-    plt.savefig('../../tex/regions.pgf', bbox_inches='tight')
+    # plt.savefig('../../tex/regions.pgf', bbox_inches='tight')
 
 if __name__ == "__main__":
     main()

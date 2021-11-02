@@ -23,9 +23,6 @@ def main():
     NUM_EVENTS, NUM_ROWS, NUM_COLUMNS, NUM_TIME_BINS = np.shape(arr)
 
 
-    DATA_EXCLUDE_MASK = np.zeros((4, 12, 144, 30), dtype=bool)
-    DATA_EXCLUDE_MASK [:,4:8, 72:,:] = True
-    arr[DATA_EXCLUDE_MASK] = 0
 
     # Average along time and event dimensions
     mean = np.average(np.average(arr, axis=3), axis=0)
