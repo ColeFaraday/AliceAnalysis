@@ -3,17 +3,31 @@
 
 # Finds the regions of interest (i.e. where we expect to see tracklets) and saves them as a csv file
 
-import numpy as np
-import matplotlib.pyplot as plt
 import itertools
 import argparse
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
 from matplotlib import colors
+from matplotlib.ticker import MultipleLocator
 
 # CONSTANTS
 BACKGROUND = 9.6 # TODO: fill in the real value
+THRESHOLD = 200
 
-finalROIArr = None
-finalRegionsArr = None
+finalROIArr = []
+
+
+# For latex output, have to set figsize=(x, y) in plot creation
+
+matplotlib.use("pgf")
+matplotlib.rcParams.update({
+    "pgf.texsystem": "pdflatex",
+    'font.family': 'serif',
+    'text.usetex': True,
+    'pgf.rcfonts': False,
+})
+
 
 class regions_of_interest:
 
@@ -21,10 +35,10 @@ class regions_of_interest:
         ''' Takes in adcdata array which is a three dimensional array of the adcdata for a specific event'''
 
         self.data = adcdata
-        self.tbsum = np.sum(self.data, 2) # sum over time dimension (total number of hits per pad)k
+        self.tbsum = np.sum(self.data, 2) # sum over time dimension (total number of hits per pad)
 
         # find points of interest - 2D array of hits = fired pads
-        self.poi = np.argwhere(self.tbsum > 350) # TODO: This value seems arbitrary?
+        self.poi = np.argwhere(self.tbsum > THRESHOLD) # TODO: This value seems arbitrary?
 
         # create list for regions of interest
         self.roi = []
@@ -48,7 +62,7 @@ class regions_of_interest:
                 else:
                     npad = current-start+1
                     self.roi.append([r, start, current, npad]) # row, start, end, number of pads
-                    # start=False # new code, unsure how it worked without this
+                    start=False # new code, unsure how it worked without this
 
         self.roi = np.array(self.roi)
 
@@ -63,12 +77,8 @@ class regions_of_interest:
         else:
             raise StopIteration
         
-
-
-
 def main():
     global finalROIArr
-    global finalRegionsArr
 
     # generate a parser for the command line arguments
     parser = argparse.ArgumentParser(description='Generate a .npy file of the continuous regions of interest which could correspond to tracklets')
@@ -92,61 +102,70 @@ def main():
     # ------------------------------------------------------------------------
     # event loop
     for evno, d in enumerate(data):
-        tempROIArr = None
-        tempRegions = None
             
+
         # Loop through regions of interest 
         for roi in regions_of_interest(d):
 
-            tracklet = d[roi[0], roi[1]:roi[2], :]-BACKGROUND
-            print("LITTLE", tracklet)
-            print("ROI", roi)
-            print(np.shape(roi))
+            # tracklet = d[roi[0], roi[1]:roi[2], :]-BACKGROUND
+            # Only look for regions with length greater than 1
+            if roi[3] <= 1: continue
+            entry = [evno, roi[0], roi[1], roi[2], roi[3]]
 
-             # add tracklet to ROI arr
-            if type(finalROIArr) == type(None):
-                tempROIArr = tracklet
-                tempRegions = roi
-            else:
-                tempROIArr = np.vstack([tempROIArr,tracklet])
-                tempRegions = np.vstack([tempRegions, roi])
-            print(evno, tempROIArr)
+            finalROIArr.append(entry)
+
  
             # skip roi if data in first bins, (TODO: why?)
             # if ( np.sum(tracklet[:,0:6]) > 50 ): continue
 
             # fill pulseheight sum and plot tracklets
-            sumtracklet += np.sum(tracklet, 0)
-            ntracklet += 1
+            # sumtracklet += np.sum(tracklet, 0)
+            # ntracklet += 1
 
-        if type(finalROIArr) == type(None):
-            print(tempROIArr, "HEYO")
-            finalROIArr = tempROIArr
-        else:
-            finalROIArr = np.vstack([finalROIArr, tempROIArr])
-
-
+    finalROIArr = np.array(finalROIArr)
     print(finalROIArr)
-        
+
+
+
     # create discrete colormap
-    cmap = colors.ListedColormap(['red', 'blue'])
+    cmap = colors.ListedColormap(['grey', 'blue'])
     # bounds = [0,10,20]
     # norm = colors.BoundaryNorm(bounds, cmap.N)
+    eventNum = 2
+    data2d = np.sum(data[eventNum, :, :, :], 2)
 
-    print(specificRegion)
+    regions2D = finalROIArr[np.argwhere(finalROIArr[:,0] == eventNum)]
+    regionsInData = np.zeros((12,50))
 
-    fig, ax = plt.subplots()
-    ax.imshow(regionsInDataArr, cmap=cmap)
+    for x in regions2D:
+        x = x[0]
+        regionsInData[ x[1], x[2]:x[3]] = 1
+
+
+    print("regions", regions2D)
+
+    fig, ax = plt.subplots(figsize=(8,3))
+    ax.imshow(regionsInData, cmap=cmap)
+    plt.xlim([0, 49])
+    plt.ylim([0, 11])
+
 
     # draw gridlines
-    ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
-    ax.set_xticks(np.arange(-.5, 10, 1));
-    ax.set_yticks(np.arange(-.5, 10, 1));
+    # ax.grid(which='both', axis='both', linestyle='-', color='k', linewidth=1)
+    # ax.minorticks_on()
+    # ax.xaxis.set_minor_locator(MultipleLocator(1))
+    # ax.yaxis.set_minor_locator(MultipleLocator(1))
+    # ax.set_xticks(np.arange(0, 144, 1));
+    # ax.set_yticks(np.arange(0, 12, 1));
+    ax.set_xlabel("Pad columns")
+    ax.set_ylabel("Pad rows")
 
-    plt.show()
+    # plt.show()
 
     finalROIArr = np.array(finalROIArr)
     np.save(args.out_file, finalROIArr)
+
+    plt.savefig('../../tex/regions.pgf', bbox_inches='tight')
 
 if __name__ == "__main__":
     main()
