@@ -1,0 +1,1 @@
+/home/cole/doc/uni/obsidian/Resources/latex/permanent/helper.py

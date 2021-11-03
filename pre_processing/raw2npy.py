@@ -53,6 +53,7 @@ if __name__ == "__main__":
             analyser.analyse_event(raw_data)
         except adc.datafmt_error as e:
             print ("data format error in event %d" % evno)
+            print(e)
             continue
 
         data = analyser.data[:12]  # The last four rows are zeros.
@@ -66,7 +67,7 @@ if __name__ == "__main__":
     if args.suppress==True:
         DATA_EXCLUDE_MASK = np.zeros(np.shape(alldata), dtype=bool)
         DATA_EXCLUDE_MASK [:,8:12, :72,:] = True
-        # DATA_EXCLUDE_MASK [:,4:8, 72:,:] = True
+        DATA_EXCLUDE_MASK [:,4:8, 72:,:] = True
         alldata[DATA_EXCLUDE_MASK] = 0
 
     np.save(args.filename_out, alldata)

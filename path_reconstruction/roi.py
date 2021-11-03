@@ -13,7 +13,7 @@ from matplotlib.ticker import MultipleLocator
 
 # CONSTANTS
 BACKGROUND = 9.6 # TODO: fill in the real value
-THRESHOLD = 800
+THRESHOLD = 700
 
 finalROIArr = []
 
@@ -114,7 +114,6 @@ def main():
             finalROIArr.append(entry)
 
     finalROIArr = np.array(finalROIArr)
-    print(finalROIArr)
 
 
 
@@ -133,8 +132,8 @@ def main():
         regionsInData[ x[1], x[2]:x[3]] = 1
 
 
-    print("regions", regions2D)
-
+    print(finalROIArr)
+    print(len(finalROIArr))
     # fig, ax = plt.subplots(figsize=(8,3))
     # ax.imshow(regionsInData, cmap=cmap)
     # plt.xlim([0, 49])
