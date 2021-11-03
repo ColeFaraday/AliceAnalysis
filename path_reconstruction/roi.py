@@ -13,7 +13,7 @@ from matplotlib.ticker import MultipleLocator
 
 # CONSTANTS
 BACKGROUND = 9.6 # TODO: fill in the real value
-THRESHOLD = 350
+THRESHOLD = 800
 
 finalROIArr = []
 
@@ -92,8 +92,8 @@ def main():
 
 
     data = np.load(args.filename, allow_pickle=True)
-    print(np.shape(data))
     data = data[1:,:,:,:] # remove first event which is just zeros
+    print(data)
 
     sumtracklet = np.zeros(30)
     ntracklet = 0
@@ -107,19 +107,11 @@ def main():
         for roi in regions_of_interest(d):
 
             # tracklet = d[roi[0], roi[1]:roi[2], :]-BACKGROUND
-            # Only look for regions with length greater than 1
-            if roi[3] <= 1: continue
+            # Only look for regions with length three or more
+            # if roi[3] < 3: continue
             entry = [evno, roi[0], roi[1], roi[2], roi[3]]
 
             finalROIArr.append(entry)
-
- 
-            # skip roi if data in first bins, (TODO: why?)
-            # if ( np.sum(tracklet[:,0:6]) > 50 ): continue
-
-            # fill pulseheight sum and plot tracklets
-            # sumtracklet += np.sum(tracklet, 0)
-            # ntracklet += 1
 
     finalROIArr = np.array(finalROIArr)
     print(finalROIArr)

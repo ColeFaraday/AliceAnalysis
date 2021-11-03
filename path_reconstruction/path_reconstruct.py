@@ -23,15 +23,20 @@ def plot_specific(regions, data, n):
     fig = plt.figure(figsize=(8, 3))
     ax = fig.add_subplot(121, projection='3d')
 
-    bigTrack = data[regions[n,0], regions[n,1], regions[n,2]:regions[n,3], :]
+
+    print(regions[n,0], regions[n,1], regions[n,2], regions[n,3])
+    bigTrack = data[regions[n,0], regions[n,1], regions[n,2]-3:regions[n,3]+4, :]
+    # bigTrack = data[62, 11, 102:106, :]
+    print(bigTrack)
     bigTrack = bigTrack[1:,:]
     bigTrack = np.swapaxes(bigTrack, 0,1)
 
     x_data, y_data = np.meshgrid( np.arange(bigTrack.shape[1]), np.arange(bigTrack.shape[0]) )
     
-    x_data = x_data.flatten()
+    x_data = x_data.flatten() + np.full(np.shape(x_data.flatten()), regions[n,2]-4)
     y_data = y_data.flatten()
     z_data = bigTrack.flatten()
+    print(z_data)
 
     cmap = cm.get_cmap('winter')
     norm = Normalize(vmin=min(z_data), vmax=max(z_data))
@@ -71,25 +76,34 @@ def main():
     parser = argparse.ArgumentParser(description='Generate a pulse-height plot.')
     parser.add_argument('data', help='the TRD npy file (output from raw2npy.py)')
     parser.add_argument('regions', help='the TRD regions file (output from roi.py)')
-    parser.add_argument('--printargs', action='store_true',
-                        help='print arguments and exit')
+    parser.add_argument('--plot', default=-1, help='Region number (zero indexed) to plot')
+    parser.add_argument('--printargs', action='store_true', help='print arguments and exit')
     args = parser.parse_args()
 
     if args.printargs:
         print (args)
         exit(0)
 
+
     # Load file specified as argument
     regions = np.load(args.regions)
     data = np.load(args.data)
+    data = data[1:,:,:,:] # remove first data file, as it is zero mostly
+    
+    angles = []
+
+    # Remove background data
+    # data = remove_background(data)
     print(regions)
 
-    data = remove_background(data)
+    # Plot specified region
+    if args.plot != -1: plot_specific(regions, data, int(args.plot))
 
-    plot_specific(regions, data, 14)
-
-    for region in [regions[18]]: # change later
-        trackColumns = data[region[0], region[1], region[2]:region[3], :] # track of adc values in the specific pad we're looking at
+    # Loop through the regions
+    for i, region in enumerate(regions):
+        print(region[0], region[2], region[3])
+        trackColumns = data[region[0], region[1], region[2]:region[3]+1, :] # track of adc values in the specific pad we're looking at
+        print(trackColumns)
         centerColumnIndex = np.argmax(trackColumns, 0) # array of columns which are the "center" of the collision, i.e. they have the highest ADC count
 
         before, center, after = calc_three_pad_adc(centerColumnIndex, trackColumns)
@@ -97,16 +111,27 @@ def main():
         yArr = centerColumnIndex + deltaYArr/PAD_WIDTH # in pad units
         nanRemover = np.logical_not(np.isnan(yArr))
         yArr = yArr[nanRemover]
-        x = np.arange(30)
-        x = x[nanRemover]
-        m,c = np.polyfit(x,yArr,1)
-        fit = m*x + c
-        plt.plot(x, yArr, ".")
-        plt.plot(x, fit)
-        plt.ylim(ymin=0, ymax=6)
-        print("Angle:", np.arctan(m))
-        plt.show()
-        print(yArr)
+        try: 
+            print('Hey')
+            x = np.arange(30)
+            x = x[nanRemover]
+            m,c = np.polyfit(x,yArr,1)
+            fit = m*x + c
+
+
+            # Plot the line of best fit
+            if args.plot == i:
+                plt.plot(x, yArr, ".")
+                plt.plot(x, fit)
+                plt.ylim(ymin=0, ymax=6)
+                plt.show()
+
+            angles.append(np.arctan(m))
+
+        except: 
+            print("An error occured in region", i, ". Defaulting angle to NaN")
+            angles.append("NaN")
+
 
 if __name__ == "__main__":
     main()
