@@ -101,10 +101,4 @@ ax.set_zticks([0]) #
 
 plt.show()
 
-
-
-
-
-
-
 #
