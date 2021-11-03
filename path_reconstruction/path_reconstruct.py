@@ -61,9 +61,9 @@ def calc_three_pad_adc(centerColumnIndex, trackColumns):
     after = []
     
     for i,col in enumerate(centerColumnIndex):
-        center.append(trackColumns[col, i]) # We need to pick out the ADC value located in the col'th column and the ith time bin
-        before.append(trackColumns[col-1, i]) # same thing but column before
-        after.append(trackColumns[col+1, i]) # same thing but column after
+        center.append(trackColumns[col-1, i]) # We need to pick out the ADC value located in the col'th column and the ith time bin
+        before.append(trackColumns[col-2, i]) # same thing but column before
+        after.append(trackColumns[col, i]) # same thing but column after
 
     before = np.array(before)
     center = np.array(center)
@@ -93,37 +93,33 @@ def main():
     angles = []
 
     # Remove background data
-    # data = remove_background(data)
-    print(regions)
+    data = remove_background(data)
 
     # Plot specified region
     if args.plot != -1: plot_specific(regions, data, int(args.plot))
 
     # Loop through the regions
     for i, region in enumerate(regions):
-        print(region[0], region[2], region[3])
-        trackColumns = data[region[0], region[1], region[2]:region[3]+1, :] # track of adc values in the specific pad we're looking at
-        print(trackColumns)
+        trackColumns = data[region[0], region[1], region[2]-1:region[3]+2, :] # track of adc values in the specific pad we're looking at
         centerColumnIndex = np.argmax(trackColumns, 0) # array of columns which are the "center" of the collision, i.e. they have the highest ADC count
 
         before, center, after = calc_three_pad_adc(centerColumnIndex, trackColumns)
         deltaYArr = find_sub_pad_position(before, center, after)
         yArr = centerColumnIndex + deltaYArr/PAD_WIDTH # in pad units
-        nanRemover = np.logical_not(np.isnan(yArr))
-        yArr = yArr[nanRemover]
         try: 
-            print('Hey')
+            nanRemover = np.logical_not(np.isnan(yArr))
+            yArr = yArr[nanRemover]
             x = np.arange(30)
             x = x[nanRemover]
             m,c = np.polyfit(x,yArr,1)
             fit = m*x + c
 
 
+            print(args.plot, i)
             # Plot the line of best fit
-            if args.plot == i:
+            if int(args.plot) == i:
                 plt.plot(x, yArr, ".")
                 plt.plot(x, fit)
-                plt.ylim(ymin=0, ymax=6)
                 plt.show()
 
             angles.append(np.arctan(m))
@@ -131,6 +127,9 @@ def main():
         except: 
             print("An error occured in region", i, ". Defaulting angle to NaN")
             angles.append("NaN")
+
+    plt.hist(angles, 10)
+    plt.show()
 
 
 if __name__ == "__main__":
